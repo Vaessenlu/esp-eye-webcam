@@ -5,6 +5,8 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "sensor.h"
+#include "driver/gpio.h" // RV
+#define LINK_LED 22 // RV
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
@@ -12,6 +14,21 @@ static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
 static const char* TAG = "Camera";
+
+void white_LED_On(void)
+{
+    gpio_reset_pin(LINK_LED);
+    gpio_set_direction(LINK_LED, GPIO_MODE_OUTPUT);
+    gpio_set_level(LINK_LED, 1);
+}
+
+void white_LED_Off(void)
+{
+    gpio_reset_pin(LINK_LED);
+    gpio_set_direction(LINK_LED, GPIO_MODE_OUTPUT);
+    gpio_set_level(LINK_LED, 0);
+}
+
 
 void camera_init(void) {
     const camera_config_t cfg = {
@@ -41,7 +58,7 @@ void camera_init(void) {
             .frame_size     = FRAMESIZE_VGA,
             .jpeg_quality   = 10,
             .fb_count       = 2,
-            .fb_location    = CAMERA_FB_IN_DRAM, /*!< The location where the frame buffer will be allocated */
+            .fb_location    = CAMERA_FB_IN_DRAM, /*! ESP_EYE  */
             .grab_mode      = CAMERA_GRAB_LATEST,
 
     };
@@ -51,6 +68,7 @@ void camera_init(void) {
 }
 
 static esp_err_t still_get_handler(httpd_req_t *req) {
+    white_LED_On();
     camera_fb_t *fb = NULL;
     esp_err_t res = ESP_OK;
 
@@ -86,6 +104,7 @@ static esp_err_t still_get_handler(httpd_req_t *req) {
     }
 
     esp_camera_fb_return(fb);
+    white_LED_Off();
     return res;
 }
 
